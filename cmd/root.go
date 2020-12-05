@@ -90,7 +90,8 @@ func bb() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "betterbattery: %v\n", err)
 	}
-	fmt.Println(percent(ni, mi))
+	percent := int(float32(ni) / (float32(mi) / 100))
+	fmt.Printf("%v", percent)
 	fmt.Println(s)
 }
 
@@ -101,9 +102,4 @@ func read(p string) string {
 		os.Exit(1)
 	}
 	return strings.TrimSuffix(string(v), "\n")
-}
-
-// percent returns a percentage of two ints
-func percent(n, m int) int {
-	return int(float32(n) / (float32(m) / 100))
 }
