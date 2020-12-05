@@ -23,6 +23,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -33,7 +34,10 @@ const now string = "/sys/class/power_supply/BAT0/energy_now"
 const max string = "/sys/class/power_supply/BAT0/energy_full"
 const status string = "/sys/class/power_supply/BAT0/status"
 
-var cfgFile string
+var (
+	cfgFile string
+	symbols string
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "betterbattery",
@@ -55,7 +59,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.betterbattery.yaml)")
+	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.betterbattery.yaml)")
+	rootCmd.Flags().StringVarP(&symbols, "symbols", "s", "", "two symbols such as +- to represent charging state")
 }
 
 func initConfig() {
@@ -78,6 +83,9 @@ func initConfig() {
 	}
 }
 
+// bb prints the battery status, updates the most recent cached status, and can
+// optionally run commands if the status has gone above or below configured
+// amounts
 func bb() {
 	n := read(now)
 	m := read(max)
@@ -92,9 +100,10 @@ func bb() {
 	}
 	percent := int(float32(ni) / (float32(mi) / 100))
 	fmt.Printf("%v", percent)
-	fmt.Println(s)
+	fmt.Printf("%c\n", charge(s))
 }
 
+// read a file from a path and return a string of the contents
 func read(p string) string {
 	v, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -102,4 +111,20 @@ func read(p string) string {
 		os.Exit(1)
 	}
 	return strings.TrimSuffix(string(v), "\n")
+}
+
+// charge reads a string from the charge status file and takes the passed
+// symbol value to generate a trailing symbol representing the charging state.
+func charge(s string) rune {
+	var v rune
+	b := []byte(symbols)
+	c := utf8.RuneCount(b)
+	if c > 1 {
+		if s == "Discharging" {
+			v, _ = utf8.DecodeLastRune(b)
+		} else {
+			v, _ = utf8.DecodeRune(b)
+		}
+	}
+	return v
 }
