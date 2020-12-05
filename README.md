@@ -18,3 +18,7 @@ betterbattery requires the following build dependencies:
 ## uninstall
 
 1. `sudo make uninstall`
+
+## resources
+Discussion and patches can be found [here](https://lists.sr.ht/~kota/public-inbox).
+
