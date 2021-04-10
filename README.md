@@ -1,6 +1,6 @@
 # betterbattery
 
-betterbattery prints the battery percentage, status, and can run a command if
+`betterbattery` prints the battery percentage, status, and can run a command if
 the percentage fell below a specified value since it was last ran.
 
 ## install
@@ -11,7 +11,7 @@ betterbattery requires the following build dependencies:
 - `scdoc`
 - `make`
 
-1. `git clone https://git.sr.ht/~kota/mdtest`
+1. `git clone https://git.sr.ht/~kota/betterbattery`
 2. `make all`
 3. `sudo make install`
 
