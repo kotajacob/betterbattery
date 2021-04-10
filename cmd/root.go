@@ -23,16 +23,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"path"
 	"unicode/utf8"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const now string = "/sys/class/power_supply/BAT0/energy_now"
-const max string = "/sys/class/power_supply/BAT0/energy_full"
-const status string = "/sys/class/power_supply/BAT0/status"
 
 var (
 	cfgFile string
@@ -59,27 +56,33 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.betterbattery.yaml)")
+	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $XDG_CONFIG_HOME/betterbattery/config.toml)")
 	rootCmd.Flags().StringVarP(&symbols, "symbols", "s", "", "two symbols such as +- to represent charging state")
 }
 
 func initConfig() {
+	viper.SetDefault("now", "/sys/class/power_supply/BAT0/energy_now")
+	viper.SetDefault("max", "/sys/class/power_supply/BAT0/energy_full")
+	viper.SetDefault("status", "/sys/class/power_supply/BAT0/status")
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".betterbattery")
+		// Find config directory.
+		viper.SetConfigName("config.toml")
+		viper.SetConfigType("toml")
+		viper.AddConfigPath("/etc/betterbattery/")
+		viper.AddConfigPath(path.Join(xdg.ConfigHome, "betterbattery"))
+		viper.AddConfigPath("/home/kota/.config/betterbattery/")
 	}
-	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	// viper.AutomaticEnv()
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; ignore error.
+		} else {
+			// Config file was found but another error was produced
+			fmt.Println("Error reading config file")
+		}
 	}
 }
 
@@ -87,9 +90,9 @@ func initConfig() {
 // optionally run commands if the status has gone above or below configured
 // amounts
 func bb() {
-	n := read(now)
-	m := read(max)
-	s := read(status)
+	n := read(viper.GetString("now"))
+	m := read(viper.GetString("max"))
+	s := read(viper.GetString("status"))
 	ni, err := strconv.Atoi(n)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "betterbattery: %v\n", err)
