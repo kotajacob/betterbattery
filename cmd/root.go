@@ -64,6 +64,11 @@ func initConfig() {
 	viper.SetDefault("now", "/sys/class/power_supply/BAT0/energy_now")
 	viper.SetDefault("max", "/sys/class/power_supply/BAT0/energy_full")
 	viper.SetDefault("status", "/sys/class/power_supply/BAT0/status")
+	cacheFile, err := xdg.CacheFile("betterbattery/cache")
+	if err != nil {
+		fmt.Println("Error finding default cache file")
+	}
+	viper.SetDefault("cache", cacheFile)
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -90,6 +95,7 @@ func initConfig() {
 // optionally run commands if the status has gone above or below configured
 // amounts
 func bb() {
+	fmt.Println(viper.GetString("cache"))
 	n := read(viper.GetString("now"))
 	m := read(viper.GetString("max"))
 	s := read(viper.GetString("status"))
