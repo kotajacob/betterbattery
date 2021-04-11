@@ -18,6 +18,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"log"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,6 +35,7 @@ import (
 var (
 	cfgFile string
 	symbols string
+	silent bool
 )
 
 var rootCmd = &cobra.Command{
@@ -49,7 +51,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 }
@@ -58,6 +60,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $XDG_CONFIG_HOME/betterbattery/config.toml)")
 	rootCmd.Flags().StringVarP(&symbols, "symbols", "s", "", "two symbols such as +- to represent charging state")
+	rootCmd.Flags().BoolVarP(&silent, "silent", "q", false, "do not print output")
 }
 
 func initConfig() {
@@ -66,7 +69,7 @@ func initConfig() {
 	viper.SetDefault("status", "/sys/class/power_supply/BAT0/status")
 	cacheFile, err := xdg.CacheFile("betterbattery/cache")
 	if err != nil {
-		fmt.Println("Error finding default cache file")
+		log.Fatal(err) // TODO: Does this fail if the directory is missing?
 	}
 	viper.SetDefault("cache", cacheFile)
 	if cfgFile != "" {
@@ -80,13 +83,13 @@ func initConfig() {
 		viper.AddConfigPath(path.Join(xdg.ConfigHome, "betterbattery"))
 		viper.AddConfigPath("/home/kota/.config/betterbattery/")
 	}
-	// viper.AutomaticEnv()
+	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// Config file not found; ignore error.
 		} else {
 			// Config file was found but another error was produced
-			fmt.Println("Error reading config file")
+			log.Fatal(err)
 		}
 	}
 }
@@ -95,28 +98,29 @@ func initConfig() {
 // optionally run commands if the status has gone above or below configured
 // amounts
 func bb() {
-	fmt.Println(viper.GetString("cache"))
 	n := read(viper.GetString("now"))
 	m := read(viper.GetString("max"))
 	s := read(viper.GetString("status"))
 	ni, err := strconv.Atoi(n)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "betterbattery: %v\n", err)
+		log.Fatalf("betterbattery failed reading current battery value: %v", err)
 	}
 	mi, err := strconv.Atoi(m)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "betterbattery: %v\n", err)
+		log.Fatalf("betterbattery failed reading max battery value: %v", err)
 	}
 	percent := int(float32(ni) / (float32(mi) / 100))
-	fmt.Printf("%v", percent)
-	fmt.Printf("%c\n", charge(s))
+	if silent == false {
+		fmt.Printf("%v", percent)
+		fmt.Printf("%c\n", charge(s))
+	}
 }
 
 // read a file from a path and return a string of the contents
 func read(p string) string {
 	v, err := ioutil.ReadFile(p)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "betterbattery: reading %s: %v\n", p, err)
+		log.Fatal(err)
 		os.Exit(1)
 	}
 	return strings.TrimSuffix(string(v), "\n")

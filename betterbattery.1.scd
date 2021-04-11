@@ -25,6 +25,9 @@ screen brightness.
 	*-s, --symbols* _string_
 		Two character to represent charging status. Increasing then decreasing.
 		For example: +-
+	*-q, --silent*
+		Do not print output. Useful if running in the background with cron or
+		similar.
 
 # AUTHORS
 
