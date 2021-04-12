@@ -111,16 +111,21 @@ func bb() {
 	if err != nil {
 		log.Fatalf("betterbattery failed parsing max battery value: %v", err)
 	}
-	percent := int(float32(ni) / (float32(mi) / 100))
 	pi, err := strconv.Atoi(p)
 	if err != nil {
 		log.Fatalf("betterbattery failed parsing current power value: %v", err)
 	}
 	if silent == false {
-		fmt.Printf("%v", percent)
-		fmt.Printf("%c", charge(s))
-		fmt.Printf(" @ %v Watts", float32(pi)/1000000)
+		display(ni, mi, pi, s)
 	}
+}
+
+// print battery information
+func display(n int, m int, p int, s string) {
+	percent := int(float32(n) / (float32(m) / 100))
+	fmt.Printf("%v", percent)
+	fmt.Printf("%c", charge(s))
+	fmt.Printf(" @ %v Watts", float32(p)/1000000)
 }
 
 // read a file from a path and return a string of the contents
