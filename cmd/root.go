@@ -126,6 +126,13 @@ func display(n int, m int, p int, s string) {
 	fmt.Printf("%v", percent)
 	fmt.Printf("%c", charge(s))
 	fmt.Printf(" @ %v Watts", float32(p)/1000000)
+	if s == "Discharging" {
+		t := n*60 / p
+		fmt.Printf(" (%v minutes)\n", t)
+	} else {
+		t := (m - n) * 60 / p
+		fmt.Printf(" (%v minutes)\n", t)
+	}
 }
 
 // read a file from a path and return a string of the contents
