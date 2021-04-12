@@ -99,24 +99,21 @@ func initConfig() {
 // optionally run commands if the status has gone above or below configured
 // amounts
 func bb() {
-	n := read(viper.GetString("energy_now"))
-	m := read(viper.GetString("energy_full"))
-	p := read(viper.GetString("power_now"))
-	s := read(viper.GetString("status"))
-	ni, err := strconv.Atoi(n)
+	n, err := strconv.Atoi(read(viper.GetString("energy_now")))
 	if err != nil {
 		log.Fatalf("betterbattery failed parsing current battery value: %v", err)
 	}
-	mi, err := strconv.Atoi(m)
+	m, err := strconv.Atoi(read(viper.GetString("energy_full")))
 	if err != nil {
 		log.Fatalf("betterbattery failed parsing max battery value: %v", err)
 	}
-	pi, err := strconv.Atoi(p)
+	p, err := strconv.Atoi(read(viper.GetString("power_now")))
 	if err != nil {
 		log.Fatalf("betterbattery failed parsing current power value: %v", err)
 	}
+	s := read(viper.GetString("status"))
 	if silent == false {
-		display(ni, mi, pi, s)
+		display(n, m, p, s)
 	}
 }
 
