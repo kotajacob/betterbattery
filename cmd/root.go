@@ -64,12 +64,13 @@ func init() {
 }
 
 func initConfig() {
-	viper.SetDefault("now", "/sys/class/power_supply/BAT0/energy_now")
-	viper.SetDefault("max", "/sys/class/power_supply/BAT0/energy_full")
+	viper.SetDefault("energy_now", "/sys/class/power_supply/BAT0/energy_now")
+	viper.SetDefault("energy_full", "/sys/class/power_supply/BAT0/energy_full")
+	viper.SetDefault("power_now", "/sys/class/power_supply/BAT0/power_now")
 	viper.SetDefault("status", "/sys/class/power_supply/BAT0/status")
 	cacheFile, err := xdg.CacheFile("betterbattery/cache")
 	if err != nil {
-		log.Fatal(err) // TODO: Does this fail if the directory is missing?
+		log.Fatalf("betterbattery failed to read cache: %v", err)
 	}
 	viper.SetDefault("cache", cacheFile)
 	if cfgFile != "" {
@@ -98,21 +99,27 @@ func initConfig() {
 // optionally run commands if the status has gone above or below configured
 // amounts
 func bb() {
-	n := read(viper.GetString("now"))
-	m := read(viper.GetString("max"))
+	n := read(viper.GetString("energy_now"))
+	m := read(viper.GetString("energy_full"))
+	p := read(viper.GetString("power_now"))
 	s := read(viper.GetString("status"))
 	ni, err := strconv.Atoi(n)
 	if err != nil {
-		log.Fatalf("betterbattery failed reading current battery value: %v", err)
+		log.Fatalf("betterbattery failed parsing current battery value: %v", err)
 	}
 	mi, err := strconv.Atoi(m)
 	if err != nil {
-		log.Fatalf("betterbattery failed reading max battery value: %v", err)
+		log.Fatalf("betterbattery failed parsing max battery value: %v", err)
 	}
 	percent := int(float32(ni) / (float32(mi) / 100))
+	pi, err := strconv.Atoi(p)
+	if err != nil {
+		log.Fatalf("betterbattery failed parsing current power value: %v", err)
+	}
 	if silent == false {
 		fmt.Printf("%v", percent)
-		fmt.Printf("%c\n", charge(s))
+		fmt.Printf("%c", charge(s))
+		fmt.Printf(" @ %v Watts", float32(pi)/1000000)
 	}
 }
 
@@ -120,7 +127,7 @@ func bb() {
 func read(p string) string {
 	v, err := ioutil.ReadFile(p)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("betterbattery failed to open %v: %v", p, err)
 		os.Exit(1)
 	}
 	return strings.TrimSuffix(string(v), "\n")
